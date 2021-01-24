@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: security_test
+  profiles:
+    active: dev
+    
+
+# logging:
+#   level:
+    # root: WARN
+    # com.example.demo: INFO
+  messages:
+    basename: messages
+
+  thymeleaf:
+    cache: false

@@ -1,0 +1,33 @@
+@param_username=user
+@param_passowrd=1234
+
+### 默认不配置SecurityConfit时，返回401
+GET http://localhost:8080/api/greeting HTTP/1.1
+###
+GET http://localhost:8080/api/greeting HTTP/1.1
+Authorization: Basic {{param_username}} {{param_passowrd}}
+### POST请求后面参数传递，需要禁用csrf，或者携带csrf token才能通过，否则是403——>401
+POST http://localhost:8080/api/greeting?name=何力 HTTP/1.1
+AUthorization: Basic {{param_username}} {{param_passowrd}}
+### 
+PUT http://localhost:8080/api/greeting/何力 HTTP/1.1
+AUthorization: Basic {{param_username}} {{param_passowrd}}
+### 
+POST http://localhost:8080/api/greeting?name=heli HTTP/1.1
+AUthorization: Basic {{param_username}} {{param_passowrd}}
+Content-Type: application/json
+
+{
+    "name": "何力",
+    "gender": "男"
+}
+
+
+###
+POST http://localhost:8080/authorize/login
+Content-Type: application/json
+
+{
+    "username": "user",
+    "password": "1234"
+}

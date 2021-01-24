@@ -1,0 +1,4 @@
+logging:
+  level:
+    com.example.demo: INFO
+    org.springframework.security: DEBUG
