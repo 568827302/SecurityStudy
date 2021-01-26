@@ -1,9 +1,14 @@
 package com.example.demo.config;
 
+import java.util.Map;
+
 import com.example.demo.security.filter.RestAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.passay.MessageResolver;
+import org.passay.spring.SpringMessageResolver;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,8 +25,6 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.util.Map;
-
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 /**
@@ -31,11 +34,17 @@ import lombok.val;
  * DefaultLogoutPageGeneratingFilter 默认登出
  * FilterSecurityInterceptor    安全过滤器，用于授权逻辑
  */
-@EnableWebSecurity(debug = false)
+@EnableWebSecurity(debug = true)
 @RequiredArgsConstructor
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final ObjectMapper objectMapper;
+    private final MessageSource messageSource;
+
+    @Bean
+    public MessageResolver messageResolver() {
+        return new SpringMessageResolver(messageSource);
+    }
 
     private RestAuthenticationFilter restAuthenticationFilter() throws Exception {
         RestAuthenticationFilter filter = new RestAuthenticationFilter(objectMapper);
@@ -75,6 +84,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/api/**").hasRole("USER")
                     .anyRequest().authenticated()
             )
+            .formLogin(login -> login.loginPage("/login").permitAll())
             .addFilterAt(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)    // 替换掉原来的UsernamePasswordAuthenticationFilter验证功能
             .csrf(csrf -> csrf.ignoringAntMatchers("/authorize/**", "/admin/**", "/api/**"))
             ;

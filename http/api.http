@@ -24,7 +24,8 @@ Content-Type: application/json
 
 
 ###
-POST http://localhost:8080/authorize/login
+### {{host}} 这种写法是rest-client配置在settings.json里面的环境变量,可以ctrl+shift+p: rest-client: switch environment改变环境
+POST {{host}}/authorize/login
 Content-Type: application/json
 
 {
