@@ -1,20 +1,17 @@
-@param_username=user
-@param_passowrd=1234
-
 ### 默认不配置SecurityConfit时，返回401
-GET http://localhost:8080/api/greeting HTTP/1.1
+GET {{baseUrl}}/api/greeting HTTP/1.1
 ###
-GET http://localhost:8080/api/greeting HTTP/1.1
-Authorization: Basic {{param_username}} {{param_passowrd}}
+GET {{baseUrl}}/api/greeting HTTP/1.1
+Authorization: Basic {{username}} {{password}}
 ### POST请求后面参数传递，需要禁用csrf，或者携带csrf token才能通过，否则是403——>401
-POST http://localhost:8080/api/greeting?name=何力 HTTP/1.1
-AUthorization: Basic {{param_username}} {{param_passowrd}}
+POST {{baseUrl}}/api/greeting?name=何力 HTTP/1.1
+AUthorization: Basic {{username}} {{password}}
 ### 
-PUT http://localhost:8080/api/greeting/何力 HTTP/1.1
-AUthorization: Basic {{param_username}} {{param_passowrd}}
+PUT {{baseUrl}}/api/greeting/何力 HTTP/1.1
+AUthorization: Basic {{username}} {{password}}
 ### 
-POST http://localhost:8080/api/greeting?name=heli HTTP/1.1
-AUthorization: Basic {{param_username}} {{param_passowrd}}
+POST {{baseUrl}}/api/greeting?name=heli HTTP/1.1
+AUthorization: Basic {{username}} {{password}}
 Content-Type: application/json
 
 {
@@ -25,10 +22,12 @@ Content-Type: application/json
 
 ###
 ### {{host}} 这种写法是rest-client配置在settings.json里面的环境变量,可以ctrl+shift+p: rest-client: switch environment改变环境
-POST {{host}}/authorize/login
+POST {{baseUrl}}/authorize/login
 Content-Type: application/json
 
 {
-    "username": "user",
-    "password": "1234"
+    "username": "{{username}}",
+    "password": "{{password}}"
 }
+
+###

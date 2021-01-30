@@ -2,14 +2,12 @@ package com.example.demo.config;
 
 import com.example.demo.security.filter.RestAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.NopAnnotationIntrospector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.passay.MessageResolver;
 import org.passay.spring.SpringMessageResolver;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
-import org.springframework.cglib.proxy.NoOp;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +15,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
@@ -24,9 +23,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -69,12 +66,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/api/**").hasRole("USER")
                     .anyRequest().authenticated()
             )
-//                .addFilterAt(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)    // 替换掉原来的UsernamePasswordAuthenticationFilter验证功能
-                .addFilterBefore(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAt(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)    // 替换掉原来的UsernamePasswordAuthenticationFilter验证功能
+                .httpBasic(Customizer.withDefaults())
+//                .addFilterBefore(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
 //                .csrf(csrf -> csrf.ignoringAntMatchers("/authorize/**", "/admin/**", "/api/**"))
                 .csrf(AbstractHttpConfigurer::disable)
         ;
 
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
+        auth.inMemoryAuthentication()
+                .withUser("user")
+                .password(passwordEncoder().encode("12345678"))
+                .roles("USER");
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     /**
@@ -154,8 +165,27 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //    }
 
 
-
-
+//    @Override
+//    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+////        auth.inMemoryAuthentication()
+////            .withUser(User.builder()
+////                    .username("heli")
+////                    .password(passwordEncoder().encode("12345678"))
+//////                    .password("1234abcd")
+////                    .roles("USER", "ADMIN")
+////                    .build());
+//        log.info("encode后密码 {}", passwordEncoder().encode("12345678"));
+////
+//        auth.inMemoryAuthentication()
+//                .withUser("user")
+//                .password(passwordEncoder().encode("12345678"))
+////                .roles("USER", "ADMIN");
+//                .roles("USER");
+//    }
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
 
     @Bean
     public OptionalValidatorFactoryBean validatorFactoryBean() {
