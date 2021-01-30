@@ -2,13 +2,13 @@ package com.example.demo.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
@@ -17,18 +17,27 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @RequiredArgsConstructor
 @Slf4j
 public class LoginSecurityConfig extends WebSecurityConfigurerAdapter {
-    private final PasswordEncoder passwordEncoder;
+
+    private final UserDetailsService userDetailsService;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests(req -> req.anyRequest().authenticated())
                 .formLogin(login -> login
                         .loginPage("/login")
-                        .defaultSuccessUrl("/index")
+                        .failureUrl("/login?error")
+                        .defaultSuccessUrl("/")
                         .permitAll())
-                .logout(logout -> logout.logoutUrl("/perform_logout"))
+                .logout(logout -> logout.logoutUrl("/perform_logout").logoutSuccessUrl("/login"))
 //                .csrf(Customizer.withDefaults())
-                .rememberMe(rememberMe -> rememberMe.tokenValiditySeconds(30 * 24 * 3600).rememberMeCookieName("rememberHL"));
+                .rememberMe(rememberMe -> {
+                            rememberMe
+                                    .tokenValiditySeconds(30 * 24 * 3600)
+                                    .rememberMeCookieName("rememberHL")
+                                    .userDetailsService(userDetailsService);
+                        }
+                );
     }
 
     /**
@@ -37,28 +46,9 @@ public class LoginSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) throws Exception {
         web.ignoring()
-                .antMatchers("/error/**");   // 比如请求/public/** 的请求都直接忽略，允许请求
-//                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
+//                .antMatchers("/error/**", "/h2-console");   // 比如请求/public/** 的请求都直接忽略，允许请求
+                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
     }
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        String credential = passwordEncoder.encode("12345678");
-        log.info("encode后密码 {}", credential);
-        credential = passwordEncoder.encode("12345678");
-        log.info("encode后密码 {}", credential);
 
-        log.info("try {}", passwordEncoder.matches("12345678", credential));
-//
-//        auth.inMemoryAuthentication()
-//                .withUser("user")
-//                .password(credential)
-////                .roles("USER", "ADMIN");
-//                .roles("USER");
-        auth.inMemoryAuthentication()
-            .withUser(User.builder()
-                    .username("user")
-                    .password(credential)
-                    .roles("USER")
-                    .build());
-    }
+
 }

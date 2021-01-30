@@ -15,6 +15,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,13 +24,16 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.*;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.validation.beanvalidation.OptionalValidatorFactoryBean;
 
+import javax.sql.DataSource;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -41,51 +45,35 @@ import java.util.Map;
  */
 @EnableWebSecurity(debug = true)
 @Configuration
-@RequiredArgsConstructor
 @Order(99)
+@RequiredArgsConstructor
 @Slf4j
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final ObjectMapper objectMapper;
-    private final MessageSource messageSource;
+    private final DataSource dataSource;
 
-    @Bean
-    public MessageResolver messageResolver() {
-        return new SpringMessageResolver(messageSource);
-    }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .requestMatchers(req -> req.mvcMatchers("/authorize/**", "/admin/**", "/api/**"))   // 对这些地址
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))   // session管理策略变为无状态
-            .authorizeRequests(req -> 
-                req
-                    .antMatchers("/authorize/**").permitAll()
-                    .antMatchers("/admin/**").hasRole("ADMIN")
-                    .antMatchers("/api/**").hasRole("USER")
-                    .anyRequest().authenticated()
-            )
+                .authorizeRequests(req -> req
+                        .antMatchers("/authorize/**").permitAll()
+                        .antMatchers("/admin/**").hasRole("ADMIN")
+                        .antMatchers("/api/**").hasRole("USER")
+                        .anyRequest().authenticated()
+                )
                 .addFilterAt(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)    // 替换掉原来的UsernamePasswordAuthenticationFilter验证功能
-                .httpBasic(Customizer.withDefaults())
+                .csrf(csrf -> csrf.ignoringAntMatchers("/authorize/**", "/admin/**", "/api/**"))
+//                .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
 //                .addFilterBefore(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
 //                .csrf(csrf -> csrf.ignoringAntMatchers("/authorize/**", "/admin/**", "/api/**"))
-                .csrf(AbstractHttpConfigurer::disable)
         ;
 
-    }
-
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
-        auth.inMemoryAuthentication()
-                .withUser("user")
-                .password(passwordEncoder().encode("12345678"))
-                .roles("USER");
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     /**
@@ -94,8 +82,85 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) throws Exception {
         web.ignoring()
-                .antMatchers("/error/**")   // 比如请求/public/** 的请求都直接忽略，允许请求
-                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
+                .antMatchers("/error/**", "/h2-console/**");   // 比如请求/public/** 的请求都直接忽略，允许请求
+//                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
+        auth.jdbcAuthentication()
+                .passwordEncoder(passwordEncoder())
+                .withDefaultSchema()
+                .dataSource(dataSource)
+                .withUser("user")
+                .password(passwordEncoder().encode("12345678"))
+                .roles("USER");
+    }
+
+//    @Override
+//    protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
+//        auth.inMemoryAuthentication()
+//                .passwordEncoder(passwordEncoder())
+//                .withUser("user")
+//                .password(passwordEncoder().encode("12345678"))
+//                .roles("USER");
+//    }
+
+    @Override
+    @Bean
+    /**
+     *重要，这个是把这里的authenticationManager作为全局的Bean一起使用
+     * 解决了LoginSecurityConfig 无法使用这边定义的AuthenticationManager 的问题
+     */
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+
+    /**
+     * rememberMe功能需要UserDetailsService的话，就把这个Bean抛出，在需要的地方配置
+     * rememberMe.userDetailsService(...)
+     * @return
+     * @throws Exception
+     */
+    @Bean
+    @Override
+    public UserDetailsService userDetailsServiceBean() throws Exception {
+        return super.userDetailsServiceBean();
+    }
+
+    @Bean
+    public DelegatingPasswordEncoder passwordEncoder() {
+        val map = Map.of("bcrypt", new BCryptPasswordEncoder(),
+                            "md4", new Md4PasswordEncoder());
+        return new DelegatingPasswordEncoder("bcrypt", map);
+    }
+
+    private RestAuthenticationFilter restAuthenticationFilter() throws Exception {
+        RestAuthenticationFilter filter = new RestAuthenticationFilter(objectMapper);
+        filter.setAuthenticationSuccessHandler(restAuthenticationSuccessHandler());
+        filter.setAuthenticationFailureHandler(restAuthenticationFailureHandler());
+        filter.setAuthenticationManager(authenticationManager());   // 把当前的authenticationManager传进去
+        filter.setFilterProcessesUrl("/authorize/login");   // Filter拦截的url
+        return filter;
+    }
+
+    private AuthenticationSuccessHandler restAuthenticationSuccessHandler() {
+        return (req, rsp, auth) -> {
+            ObjectMapper mapper = new ObjectMapper();
+            rsp.setStatus(HttpStatus.OK.value());
+            rsp.getWriter().println(mapper.writeValueAsString(auth));
+        };
+    }
+
+    private AuthenticationFailureHandler restAuthenticationFailureHandler() {
+        return (req, rsp, exception) -> {
+            val mapper = new ObjectMapper();
+            rsp.setStatus(HttpStatus.UNAUTHORIZED.value());
+            rsp.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+            rsp.setCharacterEncoding("UTF-8");
+            val map = Map.of("title", "认证失败", "reason", exception.getMessage());
+            rsp.getWriter().println(mapper.writeValueAsString(map));
+        };
     }
 
     /**
@@ -186,39 +251,4 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //    public PasswordEncoder passwordEncoder() {
 //        return new BCryptPasswordEncoder();
 //    }
-
-    @Bean
-    public OptionalValidatorFactoryBean validatorFactoryBean() {
-        val factoryBean = new OptionalValidatorFactoryBean();
-        factoryBean.setValidationMessageSource(messageSource);
-        return factoryBean;
-    }
-
-    private RestAuthenticationFilter restAuthenticationFilter() throws Exception {
-        RestAuthenticationFilter filter = new RestAuthenticationFilter(objectMapper);
-        filter.setAuthenticationSuccessHandler(restAuthenticationSuccessHandler());
-        filter.setAuthenticationFailureHandler(restAuthenticationFailureHandler());
-        filter.setAuthenticationManager(authenticationManager());   // 把当前的authenticationManager传进去
-        filter.setFilterProcessesUrl("/authorize/login");   // Filter拦截的url
-        return filter;
-    }
-
-    private AuthenticationSuccessHandler restAuthenticationSuccessHandler() {
-        return (req, rsp, auth) -> {
-            ObjectMapper mapper = new ObjectMapper();
-            rsp.setStatus(HttpStatus.OK.value());
-            rsp.getWriter().println(mapper.writeValueAsString(auth));
-        };
-    }
-
-    private AuthenticationFailureHandler restAuthenticationFailureHandler() {
-        return (req, rsp, exception) -> {
-            val mapper = new ObjectMapper();
-            rsp.setStatus(HttpStatus.UNAUTHORIZED.value());
-            rsp.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-            rsp.setCharacterEncoding("UTF-8");
-            val map = Map.of("title", "认证失败", "reason", exception.getMessage());
-            rsp.getWriter().println(mapper.writeValueAsString(map));
-        };
-    }
 }
