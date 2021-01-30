@@ -3,14 +3,15 @@ spring:
     name: security_test
   profiles:
     active: dev
-    
 
-# logging:
-#   level:
-    # root: WARN
-    # com.example.demo: INFO
   messages:
     basename: messages
+    encoding: UTF-8
+
+logging:
+ level:
+   root: WARN
+   com.example.demo: INFO
 
   
   

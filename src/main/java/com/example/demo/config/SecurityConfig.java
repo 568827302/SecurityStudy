@@ -1,15 +1,19 @@
 package com.example.demo.config;
 
-import java.util.Map;
-
 import com.example.demo.security.filter.RestAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.fasterxml.jackson.databind.introspect.NopAnnotationIntrospector;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.passay.MessageResolver;
 import org.passay.spring.SpringMessageResolver;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
+import org.springframework.cglib.proxy.NoOp;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,15 +22,19 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.validation.beanvalidation.OptionalValidatorFactoryBean;
 
-import lombok.RequiredArgsConstructor;
-import lombok.val;
+import java.util.Map;
+
 /**
  * BasicAuthenticationFilter    如果在请求中找到一个 Basic Auth HTTP请求头, 那么尝试从其中获取username和password
  * UsernamePasswordAuthenticationFilter 表单请求时候在post请求的body内获取username和password
@@ -35,7 +43,10 @@ import lombok.val;
  * FilterSecurityInterceptor    安全过滤器，用于授权逻辑
  */
 @EnableWebSecurity(debug = true)
+@Configuration
 @RequiredArgsConstructor
+@Order(99)
+@Slf4j
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final ObjectMapper objectMapper;
@@ -46,37 +57,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return new SpringMessageResolver(messageSource);
     }
 
-    private RestAuthenticationFilter restAuthenticationFilter() throws Exception {
-        RestAuthenticationFilter filter = new RestAuthenticationFilter(objectMapper);
-        filter.setAuthenticationSuccessHandler(restAuthenticationSuccessHandler());
-        filter.setAuthenticationFailureHandler(restAuthenticationFailureHandler());
-        filter.setAuthenticationManager(authenticationManager());   // 把当前的authenticationManager传进去
-        filter.setFilterProcessesUrl("/authorize/login");   // Filter拦截的url
-        return filter;
-    }
-
-    private AuthenticationSuccessHandler restAuthenticationSuccessHandler() {
-        return (req, rsp, auth) -> {
-            ObjectMapper mapper = new ObjectMapper();
-            rsp.setStatus(HttpStatus.OK.value());
-            rsp.getWriter().println(mapper.writeValueAsString(auth));
-        };
-    }
-
-    private AuthenticationFailureHandler restAuthenticationFailureHandler() {
-        return (req, rsp, exception) -> {
-            val mapper = new ObjectMapper();
-            rsp.setStatus(HttpStatus.UNAUTHORIZED.value());
-            rsp.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-            rsp.setCharacterEncoding("UTF-8");
-            val map = Map.of("title", "认证失败", "reason", exception.getMessage());
-            rsp.getWriter().println(mapper.writeValueAsString(map));
-        };
-    }
-
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
+                .requestMatchers(req -> req.mvcMatchers("/authorize/**", "/admin/**", "/api/**"))   // 对这些地址
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))   // session管理策略变为无状态
             .authorizeRequests(req -> 
                 req
                     .antMatchers("/authorize/**").permitAll()
@@ -84,11 +69,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/api/**").hasRole("USER")
                     .anyRequest().authenticated()
             )
-            .formLogin(login -> login.loginPage("/login").permitAll())
-            .addFilterAt(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)    // 替换掉原来的UsernamePasswordAuthenticationFilter验证功能
-            .csrf(csrf -> csrf.ignoringAntMatchers("/authorize/**", "/admin/**", "/api/**"))
-            ;
+//                .addFilterAt(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)    // 替换掉原来的UsernamePasswordAuthenticationFilter验证功能
+                .addFilterBefore(restAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+//                .csrf(csrf -> csrf.ignoringAntMatchers("/authorize/**", "/admin/**", "/api/**"))
+                .csrf(AbstractHttpConfigurer::disable)
+        ;
 
+    }
+
+    /**
+     * 有的请求不希望经过整个FilterChain，可以简单的判断允许或者拒绝的，在这个配置内设置
+     */
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        web.ignoring()
+                .antMatchers("/error/**")   // 比如请求/public/** 的请求都直接忽略，允许请求
+                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
     }
 
     /**
@@ -152,23 +148,47 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     // }
 
-    /**
-     * 有的请求不希望经过整个FilterChain，可以简单的判断允许或者拒绝的，在这个配置内设置
-     */     
-    @Override
-    public void configure(WebSecurity web) throws Exception {
-        web.ignoring().antMatchers("/public/**", "/error")// 比如请求/public/** 的请求都直接忽略，允许请求
-                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
-    }
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return NoOpPasswordEncoder.getInstance();
+//    }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication()
-            .withUser(User.builder().username("user").password(passwordEncoder().encode("1234")).roles("USER"));
-    }
+
+
+
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public OptionalValidatorFactoryBean validatorFactoryBean() {
+        val factoryBean = new OptionalValidatorFactoryBean();
+        factoryBean.setValidationMessageSource(messageSource);
+        return factoryBean;
+    }
+
+    private RestAuthenticationFilter restAuthenticationFilter() throws Exception {
+        RestAuthenticationFilter filter = new RestAuthenticationFilter(objectMapper);
+        filter.setAuthenticationSuccessHandler(restAuthenticationSuccessHandler());
+        filter.setAuthenticationFailureHandler(restAuthenticationFailureHandler());
+        filter.setAuthenticationManager(authenticationManager());   // 把当前的authenticationManager传进去
+        filter.setFilterProcessesUrl("/authorize/login");   // Filter拦截的url
+        return filter;
+    }
+
+    private AuthenticationSuccessHandler restAuthenticationSuccessHandler() {
+        return (req, rsp, auth) -> {
+            ObjectMapper mapper = new ObjectMapper();
+            rsp.setStatus(HttpStatus.OK.value());
+            rsp.getWriter().println(mapper.writeValueAsString(auth));
+        };
+    }
+
+    private AuthenticationFailureHandler restAuthenticationFailureHandler() {
+        return (req, rsp, exception) -> {
+            val mapper = new ObjectMapper();
+            rsp.setStatus(HttpStatus.UNAUTHORIZED.value());
+            rsp.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+            rsp.setCharacterEncoding("UTF-8");
+            val map = Map.of("title", "认证失败", "reason", exception.getMessage());
+            rsp.getWriter().println(mapper.writeValueAsString(map));
+        };
     }
 }

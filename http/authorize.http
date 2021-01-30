@@ -1,5 +1,5 @@
 ###
-POST {{host}}/authorize/register
+POST {{baseUrl}}/authorize/register
 Content-Type: application/json
 
 {
@@ -9,3 +9,5 @@ Content-Type: application/json
     "matchPassword": "hl568H_L93j",
     "email": "568827302@qq.com"
 }
+
+###
