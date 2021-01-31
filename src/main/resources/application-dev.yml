@@ -1,7 +1,16 @@
 logging:
   level:
     com.example.demo: DEBUG
-    org.springframework.security: DEBUG
+    org:
+      hibernate: DEBUG
+      springframework:
+        data: DEBUG
+        jdbc: DEBUG
+        security: DEBUG
+    web: DEBUG
+  pattern:
+    console: '%clr(%d{E HH:mm:ss.SSS}){blue} %clr(%-5p) %clr(${PID}){faint} %clr(---){faint}
+            %clr([%8.15t]){cyan} %clr(%-40.40logger{0}){blue} %clr(:){red} %clr(%m){faint}%n'
 
 spring:
   datasource:
@@ -27,3 +36,5 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop   # hibernate 能根据 Dto创建表结构
+  profiles:
+    active: dev

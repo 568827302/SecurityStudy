@@ -14,19 +14,3 @@ spring:
   datasource:
     # always, embedded, never 三种选项,  embedded表示使用嵌入式数据库(H2)的时候加载sql脚本,使用非嵌入式数据库（MySQL、Oracle)的时候不加载sql脚本
     initialization-mode: embedded
-
-logging:
- level:
-   root: WARN
-   com.example.demo: INFO
- pattern:
-   console: '%clr(%d{E HH:mm:ss.SSS}){blue} %clr(%-5p) %clr(${PID}){faint} %clr(---){faint}
-              %clr([%8.15t]){cyan} %clr(%-40.40logger{0}){blue} %clr(:){red} %clr(%m){faint}%n'
-
-  
-  
-  # mvc:    
-  #   throw-exception-if-no-handler-found: true
-  # resources:
-  #   add-mappings: false
-# server.error.whitelabel.enabled: true

@@ -1,4 +1,4 @@
-package com.example.demo.controllers;
+package com.example.demo.rest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -20,7 +20,7 @@ import java.security.Principal;
 
 @RestController
 @RequestMapping("/api")
-public class RestCtrl {
+public class RestResource {
     @GetMapping(value = { "/greeting" })
     @ResponseStatus(HttpStatus.CREATED)
     public String greeting() {
