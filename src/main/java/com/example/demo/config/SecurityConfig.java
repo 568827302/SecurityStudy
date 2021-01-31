@@ -1,5 +1,7 @@
 package com.example.demo.config;
 
+import com.example.demo.security.auth.ldap.LDAPAuthenticationProvider;
+import com.example.demo.security.auth.ldap.LDAPUserRepo;
 import com.example.demo.security.filter.RestAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +28,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.*;
@@ -53,6 +58,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private final ObjectMapper objectMapper;
 
     private final UserDetailsService userDetailsService;
+    private final UserDetailsPasswordService userDetailsPasswordService;
+
+    private final LDAPUserRepo ldapUserRepo;
+
     private final DataSource dataSource;
 
 
@@ -88,29 +97,54 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
     }
 
+    // 多个AuthenticationProvider配置
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth
-                .userDetailsService(userDetailsService)
-                .passwordEncoder(passwordEncoder());
-
-
-
-                // 简单定制化
-//                .jdbcAuthentication()
-//                .passwordEncoder(passwordEncoder())
-//                .dataSource(dataSource)
-//                .usersByUsernameQuery("select username, password, enabled from heli_users where username = ?")  // 这里的SQL都是替换JdbcUserDetailsManager内的原本SQL来做简单定制化
-//                .authoritiesByUsernameQuery("select username, authority from heli_authorities where username = ?");
-
-//                .withDefaultSchema()    // 使用Spring Security默认内置表结构
-//                .withUser("user")
-//                .password(passwordEncoder().encode("12345678"))
-//                .roles("USER");
-
-
-        log.info("TEST: {} ===========", passwordEncoder().encode("12345678"));
+                .authenticationProvider(daoAuthenticationProvider())
+                .authenticationProvider(ldapAuthenticationProvider());
     }
+
+    @Bean
+    public AuthenticationProvider ldapAuthenticationProvider() {
+        LDAPAuthenticationProvider ldapAuthenticationProvider = new LDAPAuthenticationProvider(ldapUserRepo);
+        return ldapAuthenticationProvider;
+    }
+
+    @Bean
+    public AuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder());
+        provider.setUserDetailsService(userDetailsService);
+        provider.setUserDetailsPasswordService(userDetailsPasswordService);
+        return provider;
+    }
+
+
+    //    @Override
+//    protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
+//        auth
+//                .userDetailsService(userDetailsService)
+//                .userDetailsPasswordManager(userDetailsPasswordService) // 这样就能一起用了
+//                .passwordEncoder(passwordEncoder());
+//
+//
+//
+//                // 简单定制化
+////                .jdbcAuthentication()
+////                .passwordEncoder(passwordEncoder())
+////                .dataSource(dataSource)
+////                .usersByUsernameQuery("select username, password, enabled from heli_users where username = ?")  // 这里的SQL都是替换JdbcUserDetailsManager内的原本SQL来做简单定制化
+////                .authoritiesByUsernameQuery("select username, authority from heli_authorities where username = ?");
+//
+////                .withDefaultSchema()    // 使用Spring Security默认内置表结构
+////                .withUser("user")
+////                .password(passwordEncoder().encode("12345678"))
+////                .roles("USER");
+//
+//
+////        log.info("TEST: {} ===========", passwordEncoder().encode("12345678"));
+//    }
 
 //    @Override
 //    protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
@@ -120,6 +154,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //                .password(passwordEncoder().encode("12345678"))
 //                .roles("USER");
 //    }
+
+    @Bean
+    public DelegatingPasswordEncoder passwordEncoder() {
+        val map = Map.of("bcrypt", new BCryptPasswordEncoder(),
+                "md4", new Md4PasswordEncoder(),
+                "SHA-256", new MessageDigestPasswordEncoder("SHA-256"),
+                "SHA-1", new MessageDigestPasswordEncoder("SHA-1")
+        );
+        return new DelegatingPasswordEncoder("SHA-1", map);
+    }
 
     @Override
     @Bean
@@ -142,16 +186,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //    public UserDetailsService userDetailsServiceBean() throws Exception {
 //        return super.userDetailsServiceBean();
 //    }
-
-    @Bean
-    public DelegatingPasswordEncoder passwordEncoder() {
-        val map = Map.of("bcrypt", new BCryptPasswordEncoder(),
-                            "md4", new Md4PasswordEncoder(),
-                "SHA-256", new MessageDigestPasswordEncoder("SHA-256"),
-                "SHA-1", new MessageDigestPasswordEncoder("SHA-1")
-        );
-        return new DelegatingPasswordEncoder("SHA-1", map);
-    }
 
     private RestAuthenticationFilter restAuthenticationFilter() throws Exception {
         RestAuthenticationFilter filter = new RestAuthenticationFilter(objectMapper);

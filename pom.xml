@@ -121,6 +121,24 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- LDAP 相关 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-ldap</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.ldap</groupId>
+			<artifactId>spring-ldap-core</artifactId>
+		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.security</groupId>-->
+<!--			<artifactId>spring-security-ldap</artifactId>-->
+<!--		</dependency>-->
+		<dependency>
+			<groupId>com.unboundid</groupId>	<!-- 提供嵌入式LDAP服务的依赖 -->
+			<artifactId>unboundid-ldapsdk</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

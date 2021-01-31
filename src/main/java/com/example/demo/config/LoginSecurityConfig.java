@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -19,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class LoginSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final UserDetailsService userDetailsService;
+    private final AuthenticationManager authenticationManager;
+
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -50,5 +53,8 @@ public class LoginSecurityConfig extends WebSecurityConfigurerAdapter {
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations());  // 对常见的静态资源的映射加到requestMapping
     }
 
-
+    @Override
+    public AuthenticationManager authenticationManager() throws Exception {
+        return authenticationManager;
+    }
 }

@@ -59,5 +59,4 @@ spring:
           fail_on_pagination_over_collection_fetch: true
           in_clause_parameter_padding: true
     show-sql: false
-  profiles:
-    active: prod
+  profiles: prod
