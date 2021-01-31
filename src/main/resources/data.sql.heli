@@ -1,0 +1,17 @@
+insert into heli_users(username, password, enabled, name)
+values('admin', '{bcrypt}$2a$10$a1Ua06.zBysKjH9yjeKGpubvvj1hAjR9/8/PXgqeHc7qzi9fmsBCu', 1, 'HL');
+insert into heli_users(username, password, enabled, name)
+values('heli', '{md4}{wi11eaAtV2gMeBwL02d2AbVSK5R1BSL52mHlrhT8Ilk=}f4037822ad0fc6ab01fff8ee38486265', 1, 'HeLi');
+insert into heli_users(username, password, enabled, name)
+values('user', '{SHA-256}{3F3GfOrOdN4G+5PhTOUmm8DY5gnLjt/IUc+kVilyKDU=}9b8f60bf0b442cfb09e48b2daec52f3764157463bf040cca66078f27c0055ca3', 1, 'LQH');
+
+
+insert into heli_authorities(username, authority)
+values('admin', 'ROLE_ADMIN');
+insert into heli_authorities(username, authority)
+values('admin', 'ROLE_USER');
+insert into heli_authorities(username, authority)
+values('heli', 'ROLE_USER');
+insert into heli_authorities(username, authority)
+values('user', 'ROLE_USER');
+

@@ -51,6 +51,8 @@ import java.util.Map;
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final ObjectMapper objectMapper;
+
+    private final UserDetailsService userDetailsService;
     private final DataSource dataSource;
 
 
@@ -88,13 +90,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {  // 几个configuration方法，要重写实现，否则默认实现会影响功能...坑！！！
-        auth.jdbcAuthentication()
-                .passwordEncoder(passwordEncoder())
-                .withDefaultSchema()
-                .dataSource(dataSource)
-                .withUser("user")
-                .password(passwordEncoder().encode("12345678"))
-                .roles("USER");
+        auth
+                .userDetailsService(userDetailsService)
+                .passwordEncoder(passwordEncoder());
+
+
+
+                // 简单定制化
+//                .jdbcAuthentication()
+//                .passwordEncoder(passwordEncoder())
+//                .dataSource(dataSource)
+//                .usersByUsernameQuery("select username, password, enabled from heli_users where username = ?")  // 这里的SQL都是替换JdbcUserDetailsManager内的原本SQL来做简单定制化
+//                .authoritiesByUsernameQuery("select username, authority from heli_authorities where username = ?");
+
+//                .withDefaultSchema()    // 使用Spring Security默认内置表结构
+//                .withUser("user")
+//                .password(passwordEncoder().encode("12345678"))
+//                .roles("USER");
+
+
+        log.info("TEST: {} ===========", passwordEncoder().encode("12345678"));
     }
 
 //    @Override
@@ -116,23 +131,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return super.authenticationManagerBean();
     }
 
-    /**
-     * rememberMe功能需要UserDetailsService的话，就把这个Bean抛出，在需要的地方配置
-     * rememberMe.userDetailsService(...)
-     * @return
-     * @throws Exception
-     */
-    @Bean
-    @Override
-    public UserDetailsService userDetailsServiceBean() throws Exception {
-        return super.userDetailsServiceBean();
-    }
+//    /**
+//     * rememberMe功能需要UserDetailsService的话，就把这个Bean抛出，在需要的地方配置
+//     * rememberMe.userDetailsService(...)
+//     * @return
+//     * @throws Exception
+//     */
+//    @Bean
+//    @Override
+//    public UserDetailsService userDetailsServiceBean() throws Exception {
+//        return super.userDetailsServiceBean();
+//    }
 
     @Bean
     public DelegatingPasswordEncoder passwordEncoder() {
         val map = Map.of("bcrypt", new BCryptPasswordEncoder(),
-                            "md4", new Md4PasswordEncoder());
-        return new DelegatingPasswordEncoder("bcrypt", map);
+                            "md4", new Md4PasswordEncoder(),
+                "SHA-256", new MessageDigestPasswordEncoder("SHA-256"),
+                "SHA-1", new MessageDigestPasswordEncoder("SHA-1")
+        );
+        return new DelegatingPasswordEncoder("SHA-1", map);
     }
 
     private RestAuthenticationFilter restAuthenticationFilter() throws Exception {

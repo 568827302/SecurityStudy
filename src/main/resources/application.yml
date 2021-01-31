@@ -7,10 +7,13 @@ spring:
     add-mappings: false
   mvc:
     throw-exception-if-no-handler-found: true
-
   messages:
     basename: messages
     encoding: UTF-8
+
+  datasource:
+    # always, embedded, never 三种选项,  embedded表示使用嵌入式数据库(H2)的时候加载sql脚本,使用非嵌入式数据库（MySQL、Oracle)的时候不加载sql脚本
+    initialization-mode: embedded
 
 logging:
  level:
