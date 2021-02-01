@@ -33,3 +33,11 @@ spring:
     urls: ldap://localhost:8389
 
   profiles: test
+
+mooc:
+  jwt:
+    header: Authorization
+    prefix: Bearer
+    sign-token-expired-time: 20000
+    refresh-token-expired-time: 400000
+
