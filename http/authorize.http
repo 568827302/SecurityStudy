@@ -9,5 +9,11 @@ Content-Type: application/json
     "matchPassword": "hl568H_L93j",
     "email": "568827302@qq.com"
 }
-
 ###
+POST {{baseUrl}}/authorize/token
+Content-Type: application/json
+
+{
+  "username": "user",
+  "password": "12345678"
+}

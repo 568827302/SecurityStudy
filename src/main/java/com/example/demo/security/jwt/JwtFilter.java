@@ -8,7 +8,6 @@ import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -74,8 +73,8 @@ public class JwtFilter extends OncePerRequestFilter {
      * @return 是否包含 Authorization: Bearer xxxxxxx
      */
     private boolean conditionalJwtHeader(HttpServletRequest request) {
-        String header = request.getHeader(properties.getJwt().getHeader()).trim();
+        String header = request.getHeader(properties.getJwt().getHeader());
         return !StringUtils.isEmpty(header) // 请求头不为空
-                && header.startsWith(properties.getJwt().getPrefix());  // 请求头前缀与配置相同
+                && header.trim().startsWith(properties.getJwt().getPrefix());  // 请求头前缀与配置相同
     }
 }

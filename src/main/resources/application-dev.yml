@@ -46,3 +46,6 @@ spring:
     urls: ldap://localhost:8389
 
   profiles: dev
+mooc:
+  jwt:
+    header: Authorization

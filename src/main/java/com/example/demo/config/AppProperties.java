@@ -1,16 +1,17 @@
 package com.example.demo.config;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 @ConfigurationProperties(prefix = "mooc")
-@Component
+@Configuration
+@Data
 public class AppProperties {
 
-    @Getter
-    @Setter
     private Jwt jwt = new Jwt();
 
     @Getter

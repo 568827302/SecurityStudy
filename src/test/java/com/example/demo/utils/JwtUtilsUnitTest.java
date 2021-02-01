@@ -88,9 +88,9 @@ class JwtUtilsUnitTest {
                 .authorities(roles)
                 .build();
         if(TokenType.SIGN_TOKEN.equals(type))
-            return utils.createSignJwtToken(user, time);
+            return utils.createSignJwtToken(user);
         else if(TokenType.REFRESH_TOKEN.equals(type))
-            return utils.createRefreshJwtToken(user, time);
+            return utils.createRefreshJwtToken(user);
         else
             throw new Exception("不支持的类型");
     }

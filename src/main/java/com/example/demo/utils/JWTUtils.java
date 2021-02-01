@@ -27,19 +27,13 @@ public class JWTUtils {
     private final AppProperties properties;
 
     public String createSignJwtToken(UserDetails userDetails) {
-        return createSignJwtToken(userDetails, System.currentTimeMillis());
+//        return createSignJwtToken(userDetails, System.currentTimeMillis());
+        return createJwtToken(userDetails, TokenType.SIGN_TOKEN, System.currentTimeMillis());
     }
 
     public String createRefreshJwtToken(UserDetails userDetails) {
-        return createRefreshJwtToken(userDetails, System.currentTimeMillis());
-    }
-
-    public String createSignJwtToken(UserDetails userDetails, long time) {
-        return createJwtToken(userDetails, TokenType.SIGN_TOKEN, time);
-    }
-
-    public String createRefreshJwtToken(UserDetails userDetails, long time) {
-        return createJwtToken(userDetails, TokenType.REFRESH_TOKEN, time);
+//        return createRefreshJwtToken(userDetails, System.currentTimeMillis());
+        return createJwtToken(userDetails, TokenType.SIGN_TOKEN, System.currentTimeMillis());
     }
 
     private String createJwtToken(UserDetails userDetails, TokenType type, long time) {
@@ -65,5 +59,13 @@ public class JWTUtils {
         log.warn("compact: {}", builder.compact());
         return builder.compact();
     }
+
+//    public String createSignJwtToken(UserDetails userDetails, long time) {
+//        return createJwtToken(userDetails, TokenType.SIGN_TOKEN, time);
+//    }
+//
+//    public String createRefreshJwtToken(UserDetails userDetails, long time) {
+//        return createJwtToken(userDetails, TokenType.REFRESH_TOKEN, time);
+//    }
 
 }
