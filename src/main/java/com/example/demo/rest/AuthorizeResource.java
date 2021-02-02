@@ -33,7 +33,9 @@ public class AuthorizeResource {
     }
 
     @PostMapping("/token/refresh")
-    public Auth refreshToken(@RequestHeader("Authoritication") String header) {
+    public Auth refreshToken(@RequestHeader("Authoritication") String header,
+                             @RequestParam String refreshToken) {
+        // TODO..
         return null;
     }
 }

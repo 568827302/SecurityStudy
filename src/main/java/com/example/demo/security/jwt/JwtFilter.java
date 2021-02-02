@@ -25,8 +25,22 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
+/**
+ * OncePerRequestFilter 每次请求都进入Filter
+ */
 public class JwtFilter extends OncePerRequestFilter {
     private final AppProperties properties;
+
+    /**
+     * 若有请求头 Authorization: Bearer xxxxxxxx ，
+     * 则对token进行解析，获取claims内的authorities数据，
+     * 组装成UsernamePasswordToken放入SecurityContextHolder内
+     * @param request Http请求
+     * @param response Http相应
+     * @param filterChain 过滤链
+     * @throws ServletException
+     * @throws IOException
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         if(conditionalJwtHeader(request)) {
@@ -61,7 +75,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private Optional<Claims> validationToken(HttpServletRequest request) {
         String header = request.getHeader(properties.getJwt().getHeader()).trim();
         String token = header.replace(properties.getJwt().getPrefix(), "");
-        return Optional.of(Jwts.parserBuilder().setSigningKey(JWTUtils.signKey)
+        return Optional.of(Jwts.parserBuilder().setSigningKey(JWTUtils.ACCESS_KEY)
                 .build()
                 .parseClaimsJws(token)
                 .getBody());

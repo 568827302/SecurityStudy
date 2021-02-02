@@ -1,6 +1,5 @@
 package com.example.demo.service;
 
-import com.example.demo.config.AppProperties;
 import com.example.demo.domain.Auth;
 import com.example.demo.repository.UserRepo;
 import com.example.demo.utils.JWTUtils;
@@ -21,7 +20,7 @@ public class UserService {
         return userRepo.findOptionalByUsername(username)
                 .filter(user -> passwordEncoder.matches(password, user.getPassword()))
                 .map(user -> Auth.builder()
-                        .signToken(jwtUtils.createSignJwtToken(user))
+                        .signToken(jwtUtils.createAccessJwtToken(user))
                         .refreshToken(jwtUtils.createRefreshJwtToken(user))
                         .build()
                 ).orElseThrow(() -> new BadCredentialsException("账户密码认证失败"));

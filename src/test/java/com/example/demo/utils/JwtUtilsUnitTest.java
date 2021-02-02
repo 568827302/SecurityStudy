@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.Date;
 import java.util.Set;
 
 @ExtendWith(SpringExtension.class)
@@ -36,7 +35,7 @@ class JwtUtilsUnitTest {
     @Test
     void givenUserDetials_thenCreateTokenSuccess() throws Exception {
         String username = "heli";
-        TokenType type = TokenType.SIGN_TOKEN;
+        TokenType type = TokenType.ACCESS_TOKEN;
 
         String token = generateToken(username, type);
 
@@ -49,7 +48,7 @@ class JwtUtilsUnitTest {
     void defaultJwtToken_hasDefaultExpiredTime() throws Exception {
         long start = System.currentTimeMillis();
         log.warn("method start: {}", start);
-        TokenType type = TokenType.SIGN_TOKEN;
+        TokenType type = TokenType.ACCESS_TOKEN;
 
         String token = generateToken("user", type, start);
 
@@ -70,8 +69,8 @@ class JwtUtilsUnitTest {
                 .username(username)
                 .authorities(roles)
                 .build();
-        if(TokenType.SIGN_TOKEN.equals(type))
-            return utils.createSignJwtToken(user);
+        if(TokenType.ACCESS_TOKEN.equals(type))
+            return utils.createAccessJwtToken(user);
         else if(TokenType.REFRESH_TOKEN.equals(type))
             return utils.createRefreshJwtToken(user);
         else
@@ -87,8 +86,8 @@ class JwtUtilsUnitTest {
                 .username(username)
                 .authorities(roles)
                 .build();
-        if(TokenType.SIGN_TOKEN.equals(type))
-            return utils.createSignJwtToken(user);
+        if(TokenType.ACCESS_TOKEN.equals(type))
+            return utils.createAccessJwtToken(user);
         else if(TokenType.REFRESH_TOKEN.equals(type))
             return utils.createRefreshJwtToken(user);
         else
@@ -98,10 +97,10 @@ class JwtUtilsUnitTest {
     private Jws<Claims> parseClaimsJws(String token, TokenType type) throws Exception {
         val builder = Jwts.parserBuilder();
         JwtParser parser;
-        if(TokenType.SIGN_TOKEN.equals(type))
-            parser = builder.setSigningKey(JWTUtils.signKey).build();
+        if(TokenType.ACCESS_TOKEN.equals(type))
+            parser = builder.setSigningKey(JWTUtils.ACCESS_KEY).build();
         else if(TokenType.REFRESH_TOKEN.equals(type))
-            parser = builder.setSigningKey(JWTUtils.refreshKey).build();
+            parser = builder.setSigningKey(JWTUtils.REFRESH_KEY).build();
         else
             throw new Exception("不支持的类型");
         return parser.parseClaimsJws(token);
