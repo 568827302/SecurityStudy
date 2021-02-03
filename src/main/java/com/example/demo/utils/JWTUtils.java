@@ -29,29 +29,29 @@ public class JWTUtils {
     /**
      * 根据UserDetails创建访问令牌
      */
-    public String createAccessJwtToken(UserDetails userDetails) {
-        return createJwtToken(userDetails, ACCESS_KEY, System.currentTimeMillis());
+    public String createAccessToken(UserDetails userDetails) {
+        return createToken(userDetails, ACCESS_KEY, System.currentTimeMillis());
     }
 
     /**
      * 根据UserDetails创建刷新令牌
      */
-    public String createRefreshJwtToken(UserDetails userDetails) {
-        return createJwtToken(userDetails, REFRESH_KEY, System.currentTimeMillis());
+    public String createRefreshToken(UserDetails userDetails) {
+        return createToken(userDetails, REFRESH_KEY, System.currentTimeMillis());
     }
 
     /**
      * 校验访问令牌是否为本服务器签发
      */
-    public boolean validAccessJwtToken(String token) {
-        return validJwtToken(token, ACCESS_KEY, false);
+    public boolean validAccessToken(String token) {
+        return validToken(token, ACCESS_KEY, false);
     }
 
     /**
      * 校验刷新令牌是否为本服务器签发
      */
-    public boolean validRefreshJwtToken(String token) {
-        return validJwtToken(token, REFRESH_KEY, false);
+    public boolean validRefreshToken(String token) {
+        return validToken(token, REFRESH_KEY, false);
     }
 
     /**
@@ -59,17 +59,31 @@ public class JWTUtils {
      * @param token 令牌串
      * @return
      */
-    public boolean validRefreshJwtTokenWithoutExpired(String token) {
-        return validJwtToken(token, REFRESH_KEY, true);
+    public boolean validAccessTokenWithoutExpired(String token) {
+        return validToken(token, ACCESS_KEY, true);
     }
 
-    public Optional<Claims> buildAccessTokenWithRefreshToken(String refreshToken) {
-//        parseClaims(refreshToken)
-        // TODO..
-        return Optional.empty();
+    public String buildAccessTokenWithRefreshToken(String refreshToken) {
+        return parseClaims(refreshToken, REFRESH_KEY)
+                .map(claims -> Jwts.builder()
+                        .setClaims(claims)
+                        .signWith(ACCESS_KEY, SignatureAlgorithm.HS512)
+                        .setExpiration(new Date(System.currentTimeMillis() + properties.getJwt().getAccessTokenExpiredTime()))
+                        .compact())
+                .orElseThrow();
     }
 
-    private String createJwtToken(UserDetails userDetails, Key key, long timeToExpire) {
+    private Optional<Claims> parseClaims(String token, Key key) {
+        try {
+            val claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+            return Optional.of(claims);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+
+    }
+
+    private String createToken(UserDetails userDetails, Key key, long timeToExpire) {
         long currTime = System.currentTimeMillis();
         return Jwts.builder()
                 .setId("mooc")
@@ -90,7 +104,7 @@ public class JWTUtils {
      * @param isExpiredInvolved 是否包含过期校验 true-过期令牌校验失败 false-过期令牌可通过校验
      * @return 是否通过校验
      */
-    private boolean validJwtToken(String token, Key key, boolean isExpiredInvolved) {
+    private boolean validToken(String token, Key key, boolean isExpiredInvolved) {
         try {
             val claims = Jwts.parserBuilder().setSigningKey(key)
                     .build()

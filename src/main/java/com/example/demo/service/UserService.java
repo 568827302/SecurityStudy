@@ -20,8 +20,8 @@ public class UserService {
         return userRepo.findOptionalByUsername(username)
                 .filter(user -> passwordEncoder.matches(password, user.getPassword()))
                 .map(user -> Auth.builder()
-                        .signToken(jwtUtils.createAccessJwtToken(user))
-                        .refreshToken(jwtUtils.createRefreshJwtToken(user))
+                        .accessToken(jwtUtils.createAccessToken(user))
+                        .refreshToken(jwtUtils.createRefreshToken(user))
                         .build()
                 ).orElseThrow(() -> new BadCredentialsException("账户密码认证失败"));
     }

@@ -17,3 +17,11 @@ Content-Type: application/json
   "username": "user",
   "password": "12345678"
 }
+###
+POST {{baseUrl}}/authorize/token/refresh
+Content-Type: application/json
+
+{
+  "username": "user",
+  "password": "12345678"
+}

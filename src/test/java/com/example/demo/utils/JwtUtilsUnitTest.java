@@ -54,7 +54,7 @@ class JwtUtilsUnitTest {
 
         val claim = parseClaimsJws(token, type).getBody();
         log.warn("method claim's expiration time: {}", claim.getExpiration().getTime());
-        log.warn("method properties's signTokenExpiredTime: {}", properties.getJwt().getSignTokenExpiredTime());
+        log.warn("method properties's signTokenExpiredTime: {}", properties.getJwt().getAccessTokenExpiredTime());
 
         Assert.assertTrue(true);
 
@@ -70,9 +70,9 @@ class JwtUtilsUnitTest {
                 .authorities(roles)
                 .build();
         if(TokenType.ACCESS_TOKEN.equals(type))
-            return utils.createAccessJwtToken(user);
+            return utils.createAccessToken(user);
         else if(TokenType.REFRESH_TOKEN.equals(type))
-            return utils.createRefreshJwtToken(user);
+            return utils.createRefreshToken(user);
         else
             throw new Exception("不支持的类型");
     }
@@ -87,9 +87,9 @@ class JwtUtilsUnitTest {
                 .authorities(roles)
                 .build();
         if(TokenType.ACCESS_TOKEN.equals(type))
-            return utils.createAccessJwtToken(user);
+            return utils.createAccessToken(user);
         else if(TokenType.REFRESH_TOKEN.equals(type))
-            return utils.createRefreshJwtToken(user);
+            return utils.createRefreshToken(user);
         else
             throw new Exception("不支持的类型");
     }

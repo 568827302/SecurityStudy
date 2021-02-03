@@ -18,8 +18,8 @@ public class AppProperties {
     @Setter
     public static class Jwt {
         private String header = "Authorization";
-        private String prefix = "Bearer";
-        private Long signTokenExpiredTime = 60_000L;
+        private String prefix = "Bearer ";
+        private Long accessTokenExpiredTime = 60_000L;
         private Long refreshTokenExpiredTime = 30 * 24 * 60 * 60_000L;
     }
 }

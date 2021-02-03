@@ -7,13 +7,10 @@ import com.example.demo.domain.Auth;
 import com.example.demo.domain.dto.LoginDto;
 import com.example.demo.domain.dto.UserDto;
 
-import com.example.demo.repository.UserRepo;
 import com.example.demo.service.UserService;
 import com.example.demo.utils.JWTUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 @RequestMapping("/authorize")
@@ -21,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthorizeResource {
     private final UserService userService;
+    private final JWTUtils jwtUtils;
+    private final AppProperties properties;
 
     @PostMapping("/register")
     public UserDto register(@Valid @RequestBody UserDto userDto) {
@@ -33,9 +32,15 @@ public class AuthorizeResource {
     }
 
     @PostMapping("/token/refresh")
-    public Auth refreshToken(@RequestHeader("Authoritication") String header,
+    public Auth refreshToken(@RequestHeader("Authorization") String header,
                              @RequestParam String refreshToken) {
-        // TODO..
-        return null;
+        String accessToken = header.replace(properties.getJwt().getPrefix(), "");
+        if(jwtUtils.validRefreshToken(refreshToken) && jwtUtils.validAccessTokenWithoutExpired(accessToken)) {
+            return Auth.builder()
+                    .refreshToken(refreshToken)
+                    .accessToken(jwtUtils.buildAccessTokenWithRefreshToken(refreshToken))
+                    .build();
+        }
+        throw new AccessDeniedException("Bad Credentials");
     }
 }
