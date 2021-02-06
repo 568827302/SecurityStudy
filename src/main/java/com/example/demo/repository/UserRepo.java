@@ -8,5 +8,8 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepo extends JpaRepository<User, Long> {
+    int countByUsername(String username);
+    int countByEmail(String email);
+    int countByMobile(String mobile);
     Optional<User> findOptionalByUsername(String username);
 }

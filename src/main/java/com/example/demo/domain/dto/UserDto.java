@@ -30,4 +30,7 @@ public class UserDto implements Serializable {
     @NotBlank
     @Size(min = 4, max = 50, message = "{test.username.len}")
     private String name;
+    @NotNull
+    @NotBlank
+    private String mobile;
 }
